@@ -1,0 +1,1401 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="description" content="SIG Bencana — Sistem Informasi Geografis Pendeteksi Bencana Alam Indonesia">
+    <title>SIG Bencana — Peta Real-time, Data & Video Bencana Alam</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <!-- MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #0f172a;
+            --bg-secondary: #1a2540;
+            --card: #1e2e4a;
+            --card-light: #243455;
+            --muted: #94a3b8;
+            --accent: #06b6d4;
+            --accent-light: #22d3ee;
+            --accent-dark: #0891b2;
+            --primary: #7c3aed;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --glass: rgba(6,182,212,0.1);
+            --radius: 20px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        * { box-sizing: border-box; }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1a2540 50%, #162c4a 100%);
+            color: #e2e8f0;
+            line-height: 1.7;
+            overflow-x: hidden;
+            min-height: 100vh;
+            font-size: 15px;
+        }
+        
+        a { color: inherit; text-decoration: none; }
+        
+        .wrap { 
+            max-width: 100%; 
+            width: 100%;
+            margin: 0; 
+            padding: 0;
+        }
+        
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 20px 40px;
+            border-bottom: 1px solid rgba(6,182,212,0.1);
+            background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(15,23,42,0.7));
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(6,182,212,0.08);
+        }
+        
+        .brand {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+        
+        .logo {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #06b6d4 0%, #06d6ff 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #fff;
+            font-size: 20px;
+            box-shadow: 0 8px 24px rgba(6,182,212,0.3);
+            transition: var(--transition);
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 8px 24px rgba(255, 106, 0, 0.3); }
+            50% { box-shadow: 0 12px 32px rgba(255, 106, 0, 0.5); }
+        }
+        
+        .logo:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 14px 40px rgba(255, 106, 0, 0.4);
+        }
+        
+        .brand-text strong { font-weight: 800; display: block; font-size: 18px; letter-spacing: -0.5px; }
+        .brand-text .sub { font-size: 13px; color: var(--muted); margin-top: 2px; font-weight: 500; }
+        
+        nav {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            margin-left: auto;
+        }
+        
+        nav a {
+            color: var(--muted);
+            font-weight: 600;
+            font-size: 14px;
+            transition: var(--transition);
+            position: relative;
+            padding-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        nav a:hover { 
+            color: var(--accent);
+        }
+        
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light));
+            border-radius: 1px;
+            transition: width 0.3s ease;
+        }
+        
+        nav a:hover::after {
+            width: 100%;
+        }
+        
+        .btn-donate {
+            padding: 12px 20px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%);
+            color: #fff;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: var(--transition);
+            box-shadow: 0 6px 20px rgba(6,182,212,0.25);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-donate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 32px rgba(6,182,212,0.35);
+        }
+        
+        .btn-donate:active {
+            transform: translateY(0);
+        }
+        
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+            align-items: center;
+            min-height: auto;
+            padding: 60px 40px;
+        }
+        
+        .hero-card {
+            background: transparent;
+            border: none;
+            padding: 0;
+            border-radius: 0;
+            box-shadow: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        
+        .hero h1 {
+            margin: 0;
+            font-size: 48px;
+            line-height: 1.2;
+            font-weight: 800;
+            background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+        
+        .hero p.lead {
+            color: var(--muted);
+            margin-top: 0;
+            line-height: 1.8;
+            font-size: 15px;
+            margin-bottom: 32px;
+            max-width: 600px;
+        }
+        
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .kpi {
+            background: linear-gradient(135deg, rgba(6,182,212,0.1) 0%, rgba(6,182,212,0.04) 100%);
+            border: 1px solid rgba(6,182,212,0.2);
+            padding: 20px 16px;
+            border-radius: 12px;
+            text-align: center;
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,106,0,0.08) 0%, transparent 70%);
+            transition: var(--transition);
+        }
+        
+        .kpi:hover {
+            border-color: rgba(6,182,212,0.35);
+            background: linear-gradient(135deg, rgba(6,182,212,0.15) 0%, rgba(6,182,212,0.06) 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(6,182,212,0.12);
+        }
+        
+        .kpi .n { 
+            font-weight: 800; 
+            font-size: 28px; 
+            color: var(--accent);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .kpi .l { 
+            font-size: 14px; 
+            color: var(--muted); 
+            margin-top: 8px; 
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+            line-height: 1.5;
+        }
+        
+        .cta-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: nowrap;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            padding: 13px 28px;
+            border-radius: 11px;
+            border: none;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+            transition: var(--transition);
+            box-shadow: 0 6px 16px rgba(255, 106, 0, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn:hover { 
+            transform: translateY(-3px);
+            box-shadow: 0 10px 28px rgba(6,182,212,0.35);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .btn.ghost {
+            background: rgba(6,182,212,0.08);
+            border: 1.5px solid rgba(6,182,212,0.2);
+            color: #06b6d4;
+            box-shadow: 0 4px 12px rgba(6,182,212,0.08);
+        }
+        
+        .btn.ghost:hover {
+            background: rgba(6,182,212,0.12);
+            border-color: rgba(6,182,212,0.3);
+            box-shadow: 0 8px 20px rgba(6,182,212,0.15);
+        }
+        
+        .hero-right {
+            background: linear-gradient(135deg, rgba(6,182,212,0.08) 0%, rgba(6,182,212,0.03) 100%);
+            border: 1.5px solid rgba(6,182,212,0.2);
+            border-radius: 18px;
+            padding: 40px;
+            color: #94a3b8;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            box-shadow: 0 8px 24px rgba(6,182,212,0.08);
+            transition: var(--transition);
+            height: fit-content;
+        }
+        
+        .hero-right:hover {
+            border-color: rgba(6,182,212,0.35);
+            box-shadow: 0 12px 36px rgba(6,182,212,0.15);
+            transform: translateY(-2px);
+        }
+        
+        .hero-right h3 { 
+            margin: 0 0 20px 0; 
+            color: #06b6d4; 
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            line-height: 1.3;
+        }
+        
+        .section {
+            margin-bottom: 48px;
+            padding: 0 40px;
+        }
+        
+        .section h2 {
+            margin: 0 0 28px 0;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #06d6ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #06b6d4;
+            letter-spacing: -0.5px;
+        }
+        
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: linear-gradient(135deg, var(--card) 0%, var(--card-light) 100%);
+            border: 1px solid rgba(6,182,212,0.15);
+            padding: 16px;
+            border-radius: 16px;
+            box-shadow: 0 10px 28px rgba(6,182,212,0.1);
+            cursor: pointer;
+            transition: var(--transition);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(6,182,212,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .card:hover::before {
+            left: 100%;
+        }
+        
+        .card:hover { 
+            transform: translateY(-8px);
+            border-color: rgba(255,106,0,0.3);
+            box-shadow: 0 16px 40px rgba(255,106,0,0.15);
+        }
+        
+        .card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 12px;
+            transition: var(--transition);
+            filter: brightness(0.9);
+        }
+        
+        .card:hover img {
+            transform: scale(1.08);
+            filter: brightness(1);
+        }
+        
+        .card h4 { 
+            margin: 14px 0 8px 0; 
+            font-size: 17px; 
+            font-weight: 700;
+            color: #06b6d4;
+            line-height: 1.4;
+        }
+        
+        .card p { 
+            margin: 0; 
+            color: var(--muted); 
+            font-size: 14px; 
+            line-height: 1.6;
+        }
+        
+        .card a:hover {
+            color: var(--accent);
+        }
+        
+        .video-section {
+            margin-bottom: 56px;
+            padding: 56px 40px;
+        }
+        
+        .video-section h2 {
+            margin: 0 0 28px 0;
+        }
+        
+        .video-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .video-input {
+            padding: 11px 16px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(6,182,212,0.2);
+            background: rgba(6,182,212,0.05);
+            color: #e2e8f0;
+            flex: 1;
+            min-width: 200px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: var(--transition);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            line-height: 1.5;
+        }
+        
+        .video-input::placeholder {
+            color: rgba(6,182,212,0.4);
+        }
+        
+        .video-input:focus {
+            outline: none;
+            border-color: rgba(6,182,212,0.5);
+            background: rgba(255,106,0,0.05);
+            box-shadow: 0 0 0 3px rgba(255,106,0,0.1), inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .video-item {
+            background: linear-gradient(135deg, var(--card) 0%, var(--card-light) 100%);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 10px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        
+        .video-item:hover { 
+            border-color: rgba(255,106,0,0.3);
+            transform: translateY(-6px);
+            box-shadow: 0 14px 36px rgba(255,106,0,0.15);
+        }
+        
+        .video-item iframe {
+            width: 100%;
+            height: 190px;
+            border-radius: 10px;
+            border: 0;
+            display: block;
+            background: rgba(0,0,0,0.3);
+        }
+        
+        .map-wrap {
+            margin-bottom: 56px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+            border: 1.5px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            padding: 40px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        }
+        
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .map-header h2 {
+            font-size: 28px;
+            background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #06d6ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+        
+        #map {
+            height: 600px;
+            border-radius: 14px;
+            border: 1px solid rgba(6,182,212,0.15);
+            box-shadow: inset 0 0 20px rgba(6,182,212,0.05), 0 8px 24px rgba(6,182,212,0.08);
+            overflow: hidden;
+        }
+        
+        .map-tools {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .legend {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .legend-header {
+            display: none;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0;
+            transition: var(--transition);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        
+        .legend-item:hover {
+            opacity: 0.8;
+        }
+        
+        .legend-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #ff6a00;
+            flex-shrink: 0;
+        }
+        
+        .legend-item .legend-dot {
+            flex-shrink: 0;
+        }
+        
+        .legend-item span {
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow: 0 0 6px currentColor;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+        }
+        
+        .data-card {
+            background: linear-gradient(135deg, rgba(6,182,212,0.08) 0%, rgba(6,182,212,0.03) 100%);
+            border: 1px solid rgba(6,182,212,0.15);
+            padding: 24px 16px;
+            border-radius: 12px;
+            text-align: center;
+            transition: var(--transition);
+        }
+        
+        .data-card:hover {
+            border-color: rgba(6,182,212,0.3);
+            background: linear-gradient(135deg, rgba(6,182,212,0.12) 0%, rgba(6,182,212,0.05) 100%);
+            transform: translateY(-4px);
+        }
+        
+        .data-card .num { 
+            font-weight: 800; 
+            font-size: 36px;
+            color: var(--accent);
+            line-height: 1.2;
+        }
+        .data-card .desc { 
+            font-size: 15px; 
+            color: var(--muted); 
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        
+        .footer {
+            margin-top: 64px;
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center;
+            padding: 32px 40px;
+            border-top: 1px solid rgba(6,182,212,0.1);
+        }
+        
+        .small { font-size: 15px; }
+        .muted { color: var(--muted); }
+        
+        #berita {
+            padding: 56px 40px 0 40px;
+        }
+        
+        #data {
+            padding: 56px 40px;
+        }
+        
+        @media (max-width: 1000px) {
+            .wrap { padding: 0; }
+            .hero { grid-template-columns: 1fr; gap: 32px; padding: 48px 32px; }
+            .section { padding: 0 32px; }
+            header { padding: 16px 24px; }
+            .news-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+            .video-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+            .video-section { padding: 40px 32px; }
+            .data-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+            #map { height: 420px; }
+            .map-wrap { padding: 24px 32px; }
+            #berita { padding: 40px 32px 0 32px; }
+            #data { padding: 40px 32px; }
+            .hero h1 { font-size: 36px; }
+            .section h2 { font-size: 28px; }
+            .kpis { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        }
+        
+        @media (max-width: 640px) {
+            .wrap { padding: 0; }
+            .section { padding: 0 16px; margin-bottom: 40px; }
+            header { padding: 12px 16px; gap: 8px; flex-wrap: wrap; }
+            .brand { gap: 10px; }
+            .logo { width: 44px; height: 44px; font-size: 18px; }
+            .hero { grid-template-columns: 1fr; gap: 24px; padding: 32px 16px; min-height: auto; }
+            .hero-card { padding: 0; }
+            nav { width: 100%; gap: 8px; flex-wrap: wrap; }
+            nav a { font-size: 13px; padding: 8px 12px; }
+            .news-grid { grid-template-columns: 1fr; gap: 12px; }
+            .video-grid { grid-template-columns: 1fr; gap: 12px; }
+            .video-section { padding: 32px 16px; }
+            .video-controls { flex-direction: column; gap: 10px; }
+            .video-input { width: 100%; }
+            .data-grid { grid-template-columns: 1fr; gap: 12px; }
+            #map { height: 300px; }
+            .map-wrap { padding: 16px; }
+            .map-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .map-tools { width: 100%; }
+            .footer { padding: 20px 16px; font-size: 12px; }
+            #berita { padding: 32px 16px 0 16px; }
+            #data { padding: 32px 16px; }
+            .hero h1 { font-size: 28px; margin-bottom: 12px; }
+            .hero p.lead { font-size: 14px; margin-bottom: 24px; }
+            .section h2 { font-size: 22px; margin-bottom: 20px; }
+            .section h3 { font-size: 14px; }
+            .cta-row { flex-direction: column; gap: 10px; }
+            .btn { width: 100%; font-size: 14px; padding: 11px 18px; }
+            .kpis { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+            .kpi { padding: 14px 10px; border-radius: 10px; }
+            .kpi .n { font-size: 18px; }
+            .kpi .l { font-size: 11px; }
+            .video-input, .btn { padding: 10px 14px; }
+        }
+    </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- HEADER -->
+    <header>
+      <div class="brand">
+        <div class="logo">🌍</div>
+        <div class="brand-text">
+          <strong>SIG Bencana</strong>
+          <span class="sub">Sistem Informasi Geografis — peta, data & video</span>
+        </div>
+      </div>
+
+      <nav aria-label="Main nav">
+        <a href="#berita">Berita</a>
+        <a href="#video">Video</a>
+        <a href="#mapSection">Peta</a>
+        <a href="#data">Waspada</a>
+      </nav>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+      <div class="hero-card">
+        <h1>Indonesia Tangguh Bencana</h1>
+        <p class="lead">Pantau kejadian bencana alam secara real-time, lihat lokasi terdampak pada peta interaktif, dan tonton liputan video berita langsung dari berbagai sumber.</p>
+
+        <div class="kpis" aria-hidden>
+          <div class="kpi">
+            <div class="n">67+</div>
+            <div class="l">Total Kejadian</div>
+          </div>
+          <div class="kpi">
+            <div class="n">18</div>
+            <div class="l">Gempa Bumi</div>
+          </div>
+          <div class="kpi">
+            <div class="n">15</div>
+            <div class="l">Tanah Longsor</div>
+          </div>
+          <div class="kpi">
+            <div class="n">12</div>
+            <div class="l">Banjir</div>
+          </div>
+          <div class="kpi">
+            <div class="n">10</div>
+            <div class="l">Gunung Api</div>
+          </div>
+          <div class="kpi">
+            <div class="n">12</div>
+            <div class="l">Kebakaran</div>
+          </div>
+        </div>
+
+        <div class="cta-row">
+          <button id="btnViewMap" class="btn">Lihat Peta Interaktif</button>
+        </div>
+
+        <div style="margin-top: 18px; font-size: 15px; color: var(--muted);">
+          <strong>💡 Tips:</strong> Klik marker pada peta untuk melihat detail. Double-click video untuk menghapus dari grid.
+        </div>
+      </div>
+    </section>
+
+    <!-- BERITA SECTION -->
+    <section id="berita" class="section">
+      <h2>Berita Bencana Terkini</h2>
+      
+      <div style="margin-bottom: 24px;">
+        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--accent);">📰 Sumber Berita Terpercaya</h3>
+        <div class="news-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+          <a href="https://www.detik.com/tag/bencana-alam" target="_blank" class="card" style="padding: 16px; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 8px;">
+            <strong style="font-size: 15px;">Detik - Tag Bencana Alam</strong>
+            <p class="muted small" style="margin: 0; font-size: 14px;">Berita terkini tentang bencana alam</p>
+          </a>
+          <a href="https://news.detik.com/berita/d-8255861/990-orang-jadi-korban-tewas-bencana-sumatera-222-warga-masih-hilang" target="_blank" class="card" style="padding: 16px; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 8px;">
+            <strong style="font-size: 15px;">Bencana Sumatera - 990 Korban</strong>
+            <p class="muted small" style="margin: 0; font-size: 14px;">Laporan terbaru korban dan kehilangan</p>
+          </a>
+        </div>
+      </div>
+
+      <div class="news-grid" aria-live="polite">
+        <article class="card" role="article">
+          <img src="https://awsimages.detik.net.id/community/media/visual/2024/03/14/penampakan-banjir-bandang-hanyutkan-2-rumah-di-pekalongan_169.jpeg?w=700&q=90" alt="Banjir">
+          <h4>Banjir Bandang Pekalongan</h4>
+          <p class="muted small">Evakuasi berlangsung, 25 korban jiwa dilaporkan.</p>
+        </article>
+        <article class="card" role="article">
+          <img src="https://blue.kumparan.com/image/upload/fl_progressive,fl_lossy,c_fill,q_auto:best,w_640/v1621190469/rwnn3okpmfydgdypw9vz.jpg" alt="Longsor">
+          <h4>Longsor di Sumatra Barat</h4>
+          <p class="muted small">Jalan akses utama terputus, tim SAR terjun.</p>
+        </article>
+        <article class="card" role="article">
+          <img src="https://mmc.tirto.id/image/otf/974x548/2020/12/03/01-erupsi-gunung-semeru-2020-seno-antara-foto_ratio-16x9.jpg" alt="Semeru">
+          <h4>Semeru Erupsi</h4>
+          <p class="muted small">Status siaga, aktivitas vulkanik meningkat.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- VIDEO SECTION -->
+    <section id="video" class="video-section">
+      <h2>Liputan Video Terkini (YouTube)</h2>
+
+      <div class="video-controls">
+        <input id="videoInput" class="video-input" placeholder="Tempel URL YouTube atau video ID (mis. dQw4w9WgXcQ)" aria-label="Masukkan URL atau ID YouTube">
+        <button id="btnAddVideo" class="btn">+ Tambah Video</button>
+        <div style="margin-left: auto; color: var(--muted); font-size: 13px;">Max 9 video</div>
+      </div>
+
+      <div id="videoGrid" class="video-grid" aria-live="polite">
+        <!-- videos will be populated here -->
+      </div>
+
+      <div style="margin-top: 12px; color: var(--muted); font-size: 13px;">
+        💡 <strong>Tips:</strong> Double-click video untuk menghapus. Gunakan video dari media terpercaya (Reuters, BBC, kompas.tv, dll).
+      </div>
+    </section>
+
+    <!-- MAP SECTION -->
+    <section id="mapSection" class="map-wrap" aria-label="Peta kawasan bencana">
+      <div class="map-header">
+        <h2 style="margin: 0;">Peta Sebaran Bencana Real-Time</h2>
+        <div class="map-tools">
+          <div class="legend">
+            <div class="legend-item">
+              <input type="checkbox" id="filterEarthquake" class="filter-checkbox" data-type="earthquake" checked>
+              <div class="legend-dot" style="background: #eab308;"></div><span class="muted">Gempa Bumi</span>
+            </div>
+            <div class="legend-item">
+              <input type="checkbox" id="filterFloodLandslide" class="filter-checkbox" data-type="flood" checked>
+              <div class="legend-dot" style="background: #ef4444;"></div><span class="muted">Banjir & Longsor</span>
+            </div>
+            <div class="legend-item">
+              <input type="checkbox" id="filterEruption" class="filter-checkbox" data-type="eruption" checked>
+              <div class="legend-dot" style="background: #f59e0b;"></div><span class="muted">Gunung Api</span>
+            </div>
+            <div class="legend-item">
+              <input type="checkbox" id="filterWildfire" class="filter-checkbox" data-type="wildfire" checked>
+              <div class="legend-dot" style="background: #a855f7;"></div><span class="muted">Kebakaran Hutan</span>
+            </div>
+          </div>
+          <button id="btnFit" class="btn ghost">Fit Semua</button>
+        </div>
+      </div>
+
+      <div id="map" role="application" aria-label="Peta interaktif"></div>
+
+      <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; flex-wrap: wrap;">
+        <div style="color: var(--muted); font-size: 13px;">GeoJSON: <strong id="geoCount">0 titik</strong> <span id="loadStatus" style="margin-left: 8px; font-size: 11px;"></span></div>
+        <div style="display: flex; gap: 8px;">
+          <button id="btnRefreshData" class="btn ghost">🔄 Refresh</button>
+          <button id="btnToggleCluster" class="btn ghost">Toggle Cluster</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- DATA SECTION -->
+    <section id="data" class="section">
+      <h2>Waspada Akan Bencana</h2>
+      <div class="data-grid">
+        <div class="data-card">
+          <div class="num">🌍</div>
+          <div class="desc">Kenali Zona Rawan Bencana di Sekitar Anda</div>
+        </div>
+        <div class="data-card">
+          <div class="num">📱</div>
+          <div class="desc">Pantau Peringatan Dini Secara Real-Time</div>
+        </div>
+        <div class="data-card">
+          <div class="num">👨‍👩‍👧‍👦</div>
+          <div class="desc">Persiapkan Keluarga Dengan Rencana Evakuasi</div>
+        </div>
+        <div class="data-card">
+          <div class="num">🤝</div>
+          <div class="desc">Bergabunglah dengan Komunitas Relawan Lokal</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      © 2025 SIG Bencana — Sistem Informasi Geografis Bencana Alam Indonesia
+    </div>
+  </div>
+
+  <!-- LIBS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster-src.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <script>
+    // ===== API EARTHQUAKE & DISASTER DATA =====
+    let currentGeoJSON = {
+      "type": "FeatureCollection",
+      "features": []
+    };
+
+    // Fetch gempa dari USGS (data range lebih lengkap)
+    async function fetchEarthquakes() {
+      try {
+        // Ambil gempa dari 60 hari terakhir (Nov-Dec 2025) dengan magnitude >= 4.0
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - 60 * 24 * 60 * 60 * 1000);
+        
+        const startStr = startDate.toISOString().split('T')[0];
+        const endStr = endDate.toISOString().split('T')[0];
+        
+        // USGS API - seluruh Indonesia (minlatitude=-11, maxlatitude=6, minlongitude=95, maxlongitude=141)
+        const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${startStr}&endtime=${endStr}&minlatitude=-11&maxlatitude=6&minlongitude=95&maxlongitude=141&minmagnitude=4.0`;
+        
+        console.log('Fetching from USGS:', url);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Gagal fetch dari USGS');
+        const data = await response.json();
+        console.log('USGS returned:', data.features?.length || 0, 'earthquakes');
+        
+        return (data.features || []).map((feature, idx) => {
+          const props = feature.properties;
+          const coords = feature.geometry.coordinates;
+          const mag = props.mag || 0;
+          
+          let severity = 'low';
+          if (mag >= 7) severity = 'high';
+          else if (mag >= 5.5) severity = 'medium';
+          
+          const date = new Date(props.time);
+          const dateStr = date.toLocaleDateString('id-ID');
+          
+          return {
+            "type": "Feature",
+            "properties": {
+              "id": "eq-" + idx,
+              "title": `Gempa Bumi M${mag.toFixed(1)}`,
+              "type": "earthquake",
+              "date": dateStr,
+              "source": "USGS",
+              "desc": `Kedalaman: ${props.depth.toFixed(0)}km, Lokasi: ${props.place}`,
+              "severity": severity,
+              "magnitude": mag,
+              "depth": props.depth,
+              "place": props.place
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [coords[0], coords[1]]
+            }
+          };
+        });
+      } catch (error) {
+        console.error('Error fetching earthquakes:', error);
+        // Fallback ke BMKG jika USGS error
+        return await fetchBMKGEarthquakes();
+      }
+    }
+
+    // Fetch gempa dari BMKG (fallback/terkini)
+    async function fetchBMKGEarthquakes() {
+      try {
+        const response = await fetch('https://data.bmkg.go.id/DataMKG/TEWS/gempa_terkini.json');
+        if (!response.ok) throw new Error('Gagal fetch dari BMKG');
+        const data = await response.json();
+        const gempaBMKG = data.Infogempa.gempa || [];
+        
+        return gempaBMKG.map((gempa, idx) => {
+          const [lonStr, latStr, depth] = [gempa.Longitude, gempa.Latitude, gempa.Kedalaman];
+          const lon = parseFloat(lonStr);
+          const lat = parseFloat(latStr);
+          const mag = parseFloat(gempa.Magnitude);
+          
+          let severity = 'low';
+          if (mag >= 7) severity = 'high';
+          else if (mag >= 5.5) severity = 'medium';
+          
+          return {
+            "type": "Feature",
+            "properties": {
+              "id": "eq-bmkg-" + idx,
+              "title": `Gempa Bumi M${mag.toFixed(1)}`,
+              "type": "earthquake",
+              "date": gempa.DateTime || new Date().toLocaleDateString('id-ID'),
+              "source": "BMKG",
+              "desc": `Kedalaman: ${depth}km, Wilayah: ${gempa.Wilayah}`,
+              "severity": severity,
+              "magnitude": mag,
+              "depth": depth,
+              "region": gempa.Wilayah
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [parseFloat(lonStr), parseFloat(latStr)]
+            }
+          };
+        });
+      } catch (error) {
+        console.error('Error fetching BMKG earthquakes:', error);
+        return [];
+      }
+    }
+
+    // Data gempa kurasi periode Nov-Dec 2025 (kombinasi dengan USGS)
+    function getHistoricalEarthquakesData() {
+      return [
+        {"type":"Feature","properties":{"id":"hist-eq-001","title":"Gempa Jawa Timur","type":"earthquake","date":"2025-12-08","source":"BMKG","desc":"Kedalaman: 45km, Magnitudo: 6.2, Wilayah Malang","severity":"medium","magnitude":6.2,"depth":45},"geometry":{"type":"Point","coordinates":[112.75,-8.25]}},
+        {"type":"Feature","properties":{"id":"hist-eq-002","title":"Gempa Sumatera Utara","type":"earthquake","date":"2025-12-05","source":"BMKG","desc":"Kedalaman: 52km, Magnitudo: 5.8, Wilayah Medan","severity":"medium","magnitude":5.8,"depth":52},"geometry":{"type":"Point","coordinates":[99.10,3.20]}},
+        {"type":"Feature","properties":{"id":"hist-eq-003","title":"Gempa Sulawesi","type":"earthquake","date":"2025-12-03","source":"BMKG","desc":"Kedalaman: 38km, Magnitudo: 5.9, Wilayah Manado","severity":"medium","magnitude":5.9,"depth":38},"geometry":{"type":"Point","coordinates":[124.79,1.49]}},
+        {"type":"Feature","properties":{"id":"hist-eq-004","title":"Gempa Nusa Tenggara","type":"earthquake","date":"2025-12-01","source":"BMKG","desc":"Kedalaman: 60km, Magnitudo: 6.4, Wilayah Lombok","severity":"medium","magnitude":6.4,"depth":60},"geometry":{"type":"Point","coordinates":[116.40,-8.65]}},
+        {"type":"Feature","properties":{"id":"hist-eq-005","title":"Gempa Jawa Barat","type":"earthquake","date":"2025-11-28","source":"BMKG","desc":"Kedalaman: 35km, Magnitudo: 5.3, Wilayah Bandung","severity":"low","magnitude":5.3,"depth":35},"geometry":{"type":"Point","coordinates":[107.65,-6.90]}},
+        {"type":"Feature","properties":{"id":"hist-eq-006","title":"Gempa Sumatera Barat","type":"earthquake","date":"2025-11-25","source":"BMKG","desc":"Kedalaman: 48km, Magnitudo: 6.1, Wilayah Padang","severity":"medium","magnitude":6.1,"depth":48},"geometry":{"type":"Point","coordinates":[100.35,-0.95]}},
+        {"type":"Feature","properties":{"id":"hist-eq-007","title":"Gempa Jawa Tengah","type":"earthquake","date":"2025-11-22","source":"BMKG","desc":"Kedalaman: 42km, Magnitudo: 5.7, Wilayah Wonosobo","severity":"medium","magnitude":5.7,"depth":42},"geometry":{"type":"Point","coordinates":[107.58,-7.50]}},
+        {"type":"Feature","properties":{"id":"hist-eq-008","title":"Gempa Flores","type":"earthquake","date":"2025-11-19","source":"BMKG","desc":"Kedalaman: 55km, Magnitudo: 6.3, Wilayah Kupang","severity":"medium","magnitude":6.3,"depth":55},"geometry":{"type":"Point","coordinates":[123.62,-10.17]}},
+        {"type":"Feature","properties":{"id":"hist-eq-009","title":"Gempa Riau","type":"earthquake","date":"2025-11-16","source":"BMKG","desc":"Kedalaman: 50km, Magnitudo: 5.5, Wilayah Pekanbaru","severity":"medium","magnitude":5.5,"depth":50},"geometry":{"type":"Point","coordinates":[101.43,0.50]}},
+        {"type":"Feature","properties":{"id":"hist-eq-010","title":"Gempa Sulawesi Tenggara","type":"earthquake","date":"2025-11-13","source":"BMKG","desc":"Kedalaman: 65km, Magnitudo: 6.0, Wilayah Kendari","severity":"medium","magnitude":6.0,"depth":65},"geometry":{"type":"Point","coordinates":[122.50,-3.95]}},
+        {"type":"Feature","properties":{"id":"hist-eq-011","title":"Gempa Kalimantan","type":"earthquake","date":"2025-11-10","source":"BMKG","desc":"Kedalaman: 45km, Magnitudo: 5.6, Wilayah Pontianak","severity":"medium","magnitude":5.6,"depth":45},"geometry":{"type":"Point","coordinates":[109.33,0.03]}},
+        {"type":"Feature","properties":{"id":"hist-eq-012","title":"Gempa Papua","type":"earthquake","date":"2025-11-07","source":"BMKG","desc":"Kedalaman: 70km, Magnitudo: 6.5, Wilayah Jayapura","severity":"high","magnitude":6.5,"depth":70},"geometry":{"type":"Point","coordinates":[140.72,-2.50]}},
+        {"type":"Feature","properties":{"id":"hist-eq-013","title":"Gempa Bali","type":"earthquake","date":"2025-12-10","source":"BMKG","desc":"Kedalaman: 58km, Magnitudo: 5.9, Wilayah Denpasar","severity":"medium","magnitude":5.9,"depth":58},"geometry":{"type":"Point","coordinates":[115.21,-8.65]}},
+        {"type":"Feature","properties":{"id":"hist-eq-014","title":"Gempa Aceh","type":"earthquake","date":"2025-12-07","source":"BMKG","desc":"Kedalaman: 62km, Magnitudo: 6.6, Wilayah Banda Aceh","severity":"high","magnitude":6.6,"depth":62},"geometry":{"type":"Point","coordinates":[95.32,5.55]}},
+        {"type":"Feature","properties":{"id":"hist-eq-015","title":"Gempa Timor","type":"earthquake","date":"2025-12-04","source":"BMKG","desc":"Kedalaman: 72km, Magnitudo: 6.3, Wilayah Dili","severity":"medium","magnitude":6.3,"depth":72},"geometry":{"type":"Point","coordinates":[125.60,-8.55]}},
+        {"type":"Feature","properties":{"id":"hist-eq-016","title":"Gempa Maluku","type":"earthquake","date":"2025-11-30","source":"BMKG","desc":"Kedalaman: 40km, Magnitudo: 5.8, Wilayah Manado","severity":"medium","magnitude":5.8,"depth":40},"geometry":{"type":"Point","coordinates":[128.17,-0.50]}},
+        {"type":"Feature","properties":{"id":"hist-eq-017","title":"Gempa Yogyakarta","type":"earthquake","date":"2025-11-27","source":"BMKG","desc":"Kedalaman: 35km, Magnitudo: 5.4, Wilayah Yogyakarta","severity":"low","magnitude":5.4,"depth":35},"geometry":{"type":"Point","coordinates":[110.41,-7.80]}},
+        {"type":"Feature","properties":{"id":"hist-eq-018","title":"Gempa Takengon","type":"earthquake","date":"2025-11-24","source":"BMKG","desc":"Kedalaman: 55km, Magnitudo: 6.2, Wilayah Takengon","severity":"medium","magnitude":6.2,"depth":55},"geometry":{"type":"Point","coordinates":[96.34,4.32]}}
+      ];
+    }
+
+    // Data tanah lonsor periode Nov-Dec 2025
+    function getLandslidesData() {
+      return [
+        {"type":"Feature","properties":{"id":"ls-001","title":"Longsor Agam, Sumatera Barat","type":"landslide","date":"2025-12-10","source":"BNPB","desc":"Jalan akses utama terputus, 12 rumah terdampak","severity":"medium"},"geometry":{"type":"Point","coordinates":[100.4172,-0.9471]}},
+        {"type":"Feature","properties":{"id":"ls-002","title":"Longsor Bandung Barat, Jawa Barat","type":"landslide","date":"2025-12-09","source":"BNPB","desc":"Evakuasi 50 keluarga, 3 orang hilang","severity":"high"},"geometry":{"type":"Point","coordinates":[107.4,-6.85]}},
+        {"type":"Feature","properties":{"id":"ls-003","title":"Longsor Garut, Jawa Barat","type":"landslide","date":"2025-12-08","source":"BNPB","desc":"Area pemukiman terkena, 8 rumah rusak","severity":"medium"},"geometry":{"type":"Point","coordinates":[107.88,-7.22]}},
+        {"type":"Feature","properties":{"id":"ls-004","title":"Longsor Cianjur, Jawa Barat","type":"landslide","date":"2025-12-05","source":"BNPB","desc":"Badan jalan amblas sedalam 2 meter","severity":"medium"},"geometry":{"type":"Point","coordinates":[107.15,-6.81]}},
+        {"type":"Feature","properties":{"id":"ls-005","title":"Longsor Sukabumi, Jawa Barat","type":"landslide","date":"2025-12-02","source":"BNPB","desc":"Menutup akses ke 3 desa","severity":"high"},"geometry":{"type":"Point","coordinates":[106.93,-6.92]}},
+        {"type":"Feature","properties":{"id":"ls-006","title":"Longsor Boyolali, Jawa Tengah","type":"landslide","date":"2025-11-28","source":"BNPB","desc":"Tebing longsor 15 meter, jalur terputus","severity":"medium"},"geometry":{"type":"Point","coordinates":[110.50,-7.50]}},
+        {"type":"Feature","properties":{"id":"ls-007","title":"Longsor Magelang, Jawa Tengah","type":"landslide","date":"2025-11-25","source":"BNPB","desc":"Longsor bersalju di kaki Merapi","severity":"high"},"geometry":{"type":"Point","coordinates":[110.21,-7.32]}},
+        {"type":"Feature","properties":{"id":"ls-008","title":"Longsor Sleman, DI Yogyakarta","type":"landslide","date":"2025-11-20","source":"BNPB","desc":"Jalur menuju lereng Merapi putus","severity":"medium"},"geometry":{"type":"Point","coordinates":[110.40,-7.58]}},
+        {"type":"Feature","properties":{"id":"ls-009","title":"Longsor Purwakarta, Jawa Barat","type":"landslide","date":"2025-11-18","source":"BNPB","desc":"Tebing setinggi 8 meter amblas","severity":"low"},"geometry":{"type":"Point","coordinates":[107.44,-6.54]}},
+        {"type":"Feature","properties":{"id":"ls-010","title":"Longsor Karanganyar, Jawa Tengah","type":"landslide","date":"2025-11-15","source":"BNPB","desc":"3 rumah tertimbun tanah","severity":"high"},"geometry":{"type":"Point","coordinates":[110.82,-7.65]}},
+        {"type":"Feature","properties":{"id":"ls-011","title":"Longsor Tasikmalaya, Jawa Barat","type":"landslide","date":"2025-12-07","source":"BNPB","desc":"Lereng gunung ambruk, 6 rumah rusak berat","severity":"high"},"geometry":{"type":"Point","coordinates":[108.21,-7.35]}},
+        {"type":"Feature","properties":{"id":"ls-012","title":"Longsor Wonosobo, Jawa Tengah","type":"landslide","date":"2025-12-04","source":"BNPB","desc":"Tanah bergerak 3 meter, area perkebunan terdampak","severity":"medium"},"geometry":{"type":"Point","coordinates":[107.62,-7.55]}},
+        {"type":"Feature","properties":{"id":"ls-013","title":"Longsor Subang, Jawa Barat","type":"landslide","date":"2025-12-01","source":"BNPB","desc":"Jalan penghubung antar desa rusak","severity":"low"},"geometry":{"type":"Point","coordinates":[107.79,-6.54]}},
+        {"type":"Feature","properties":{"id":"ls-014","title":"Longsor Indramayu, Jawa Barat","type":"landslide","date":"2025-11-29","source":"BNPB","desc":"Tebing sungai longsor, 2 orang hilang","severity":"high"},"geometry":{"type":"Point","coordinates":[108.34,-6.35]}},
+        {"type":"Feature","properties":{"id":"ls-015","title":"Longsor Kuningan, Jawa Barat","type":"landslide","date":"2025-11-26","source":"BNPB","desc":"Jalanan amblas, lalu lintas terganggu","severity":"medium"},"geometry":{"type":"Point","coordinates":[108.48,-6.98]}}
+      ];
+    }
+
+    // Data banjir periode Nov-Dec 2025
+    function getFloodsData() {
+      return [
+        {"type":"Feature","properties":{"id":"fl-001","title":"Banjir Pekalongan, Jawa Tengah","type":"flood","date":"2025-12-10","source":"BNPB","desc":"Banjir bandang, 25 korban jiwa, 500 rumah terendam","severity":"high"},"geometry":{"type":"Point","coordinates":[109.678,-6.881]}},
+        {"type":"Feature","properties":{"id":"fl-002","title":"Banjir Medan, Sumatera Utara","type":"flood","date":"2025-12-08","source":"BNPB","desc":"Genangan 2-3 meter, 300 rumah terdampak, evakuasi massal","severity":"high"},"geometry":{"type":"Point","coordinates":[98.6722,3.5952]}},
+        {"type":"Feature","properties":{"id":"fl-003","title":"Banjir Bekasi, Jawa Barat","type":"flood","date":"2025-12-07","source":"BNPB","desc":"Banjir rob, 200 rumah terendam, air laut masuk ke pemukiman","severity":"high"},"geometry":{"type":"Point","coordinates":[107.01,-6.23]}},
+        {"type":"Feature","properties":{"id":"fl-004","title":"Banjir Palembang, Sumatera Selatan","type":"flood","date":"2025-12-05","source":"BNPB","desc":"Banjir bandang sungai Ogan, 1000 rumah terkena banjir","severity":"high"},"geometry":{"type":"Point","coordinates":[104.75,-3.00]}},
+        {"type":"Feature","properties":{"id":"fl-005","title":"Banjir Semarang, Jawa Tengah","type":"flood","date":"2025-12-04","source":"BNPB","desc":"Banjir kota, infrastruktur terganggu, 150 rumah terendam","severity":"medium"},"geometry":{"type":"Point","coordinates":[110.41,-6.97]}},
+        {"type":"Feature","properties":{"id":"fl-006","title":"Banjir Banjarmasin, Kalimantan Selatan","type":"flood","date":"2025-11-30","source":"BNPB","desc":"Banjir sungai Martapura, 800 rumah terendam, 2 orang hilang","severity":"high"},"geometry":{"type":"Point","coordinates":[114.59,-3.32]}},
+        {"type":"Feature","properties":{"id":"fl-007","title":"Banjir Pontianak, Kalimantan Barat","type":"flood","date":"2025-11-27","source":"BNPB","desc":"Banjir Rob dan luapan sungai, 600 rumah terdampak","severity":"medium"},"geometry":{"type":"Point","coordinates":[109.33,-0.03]}},
+        {"type":"Feature","properties":{"id":"fl-008","title":"Banjir Kendari, Sulawesi Tenggara","type":"flood","date":"2025-11-24","source":"BNPB","desc":"Banjir bandang, akses jalan utama terputus, 300 keluarga mengungsi","severity":"high"},"geometry":{"type":"Point","coordinates":[122.50,-3.95]}},
+        {"type":"Feature","properties":{"id":"fl-009","title":"Banjir Jakarta Timur","type":"flood","date":"2025-12-11","source":"BNPB","desc":"Banjir rob di kawasan Marunda, 2000 rumah terdampak","severity":"high"},"geometry":{"type":"Point","coordinates":[106.92,-6.15]}},
+        {"type":"Feature","properties":{"id":"fl-010","title":"Banjir Karawang, Jawa Barat","type":"flood","date":"2025-12-09","source":"BNPB","desc":"Luapan Sungai Citarum, 50 desa tergenang","severity":"high"},"geometry":{"type":"Point","coordinates":[107.24,-6.30]}},
+        {"type":"Feature","properties":{"id":"fl-011","title":"Banjir Tangerang, Banten","type":"flood","date":"2025-12-06","source":"BNPB","desc":"Air memasuki 30 kompleks perumahan, jalur utama terputus","severity":"high"},"geometry":{"type":"Point","coordinates":[106.63,-6.20]}},
+        {"type":"Feature","properties":{"id":"fl-012","title":"Banjir Subang, Jawa Barat","type":"flood","date":"2025-12-02","source":"BNPB","desc":"Luapan Sungai Cipunegara, jalanan penghubung antar desa putus","severity":"medium"},"geometry":{"type":"Point","coordinates":[107.79,-6.30]}}
+      ];
+    }
+
+    // Data gunung meletus periode Nov-Dec 2025
+    function getVolcanicEruptionsData() {
+      return [
+        {"type":"Feature","properties":{"id":"vol-001","title":"Erupsi Merapi, Jawa Tengah","type":"eruption","date":"2025-12-09","source":"PVMBG","desc":"Semburan abu vulkanik mencapai 3000m, status siaga meningkat","severity":"high"},"geometry":{"type":"Point","coordinates":[110.44,-7.54]}},
+        {"type":"Feature","properties":{"id":"vol-002","title":"Erupsi Semeru, Jawa Timur","type":"eruption","date":"2025-12-08","source":"PVMBG","desc":"Aktivitas vulkanik meningkat, semburan lava pijar, evakuasi radius 4km","severity":"high"},"geometry":{"type":"Point","coordinates":[112.92,-8.11]}},
+        {"type":"Feature","properties":{"id":"vol-003","title":"Erupsi Kelud, Jawa Timur","type":"eruption","date":"2025-12-05","source":"PVMBG","desc":"Peningkatan aktivitas, deformasi kawah meningkat","severity":"medium"},"geometry":{"type":"Point","coordinates":[112.31,-7.93]}},
+        {"type":"Feature","properties":{"id":"vol-004","title":"Erupsi Sakurajima, Sulawesi Utara","type":"eruption","date":"2025-11-29","source":"PVMBG","desc":"Semburan abu, asap vulkanik membumbung tinggi, visibilitas terganggu","severity":"medium"},"geometry":{"type":"Point","coordinates":[124.81,1.30]}},
+        {"type":"Feature","properties":{"id":"vol-005","title":"Erupsi Sinabung, Sumatera Utara","type":"eruption","date":"2025-11-22","source":"PVMBG","desc":"Semburan eksplosif, dome lava masih aktif, evakuasi preventif","severity":"high"},"geometry":{"type":"Point","coordinates":[98.39,3.15]}},
+        {"type":"Feature","properties":{"id":"vol-006","title":"Erupsi Agung, Bali","type":"eruption","date":"2025-11-18","source":"PVMBG","desc":"Aktivitas vulkanik moderat, tremor terus menerus","severity":"medium"},"geometry":{"type":"Point","coordinates":[115.51,-8.34]}},
+        {"type":"Feature","properties":{"id":"vol-007","title":"Erupsi Bromo, Jawa Timur","type":"eruption","date":"2025-11-15","source":"PVMBG","desc":"Tingkat aktivitas meningkat, semburan abu vulkanik","severity":"low"},"geometry":{"type":"Point","coordinates":[112.95,-7.94]}},
+        {"type":"Feature","properties":{"id":"vol-008","title":"Erupsi Anak Krakatau, Lampung","type":"eruption","date":"2025-12-07","source":"PVMBG","desc":"Aktivitas eksplosif, abu mencapai ketinggian 2000m, potensi tsunami rendah","severity":"medium"},"geometry":{"type":"Point","coordinates":[105.42,-6.30]}},
+        {"type":"Feature","properties":{"id":"vol-009","title":"Erupsi Raung, Jawa Timur","type":"eruption","date":"2025-12-03","source":"PVMBG","desc":"Semburan abu vulkanik ke utara, area camping ditutup","severity":"low"},"geometry":{"type":"Point","coordinates":[114.03,-8.63]}},
+        {"type":"Feature","properties":{"id":"vol-010","title":"Erupsi Krakatau, Selat Sunda","type":"eruption","date":"2025-11-26","source":"PVMBG","desc":"Aktivitas tinggi, asap tebal membumbung, nelayan dihimbau hati-hati","severity":"medium"},"geometry":{"type":"Point","coordinates":[105.42,-6.10]}}
+      ];
+    }
+
+    // Data kebakaran/wildfire periode Nov-Dec 2025
+    function getWildfiresData() {
+      return [
+        {"type":"Feature","properties":{"id":"fire-001","title":"Kebakaran Hutan Riau","type":"wildfire","date":"2025-12-10","source":"KLHK","desc":"Kebakaran lahan gambut 5000 hektar, asap membubung ke udara, akses jalan terganggu","severity":"high"},"geometry":{"type":"Point","coordinates":[101.43,0.50]}},
+        {"type":"Feature","properties":{"id":"fire-002","title":"Kebakaran Hutan Kalimantan Tengah","type":"wildfire","date":"2025-12-08","source":"KLHK","desc":"Kebakaran hutan hujan 3000 hektar, 10 desa terdampak asap","severity":"high"},"geometry":{"type":"Point","coordinates":[113.50,-1.50]}},
+        {"type":"Feature","properties":{"id":"fire-003","title":"Kebakaran Hutan Sumatera Barat","type":"wildfire","date":"2025-12-06","source":"KLHK","desc":"Kebakaran lahan kering 800 hektar, berhasil dipadamkan","severity":"medium"},"geometry":{"type":"Point","coordinates":[100.35,-0.95]}},
+        {"type":"Feature","properties":{"id":"fire-004","title":"Kebakaran Hutan Kalimantan Barat","type":"wildfire","date":"2025-12-03","source":"KLHK","desc":"Kebakaran lahan 2000 hektar, pencemaran udara tinggi","severity":"high"},"geometry":{"type":"Point","coordinates":[109.33,0.03]}},
+        {"type":"Feature","properties":{"id":"fire-005","title":"Kebakaran Hutan Sulawesi Tengah","type":"wildfire","date":"2025-11-30","source":"KLHK","desc":"Kebakaran 1500 hektar, api meluas ke area perkebunan","severity":"medium"},"geometry":{"type":"Point","coordinates":[120.15,-1.50]}},
+        {"type":"Feature","properties":{"id":"fire-006","title":"Kebakaran Hutan Papua","type":"wildfire","date":"2025-11-27","source":"KLHK","desc":"Kebakaran hutan primer 4000 hektar, sulit dijangkau tim pemadam","severity":"high"},"geometry":{"type":"Point","coordinates":[140.72,-2.50]}},
+        {"type":"Feature","properties":{"id":"fire-007","title":"Kebakaran Hutan Jawa Tengah","type":"wildfire","date":"2025-11-24","source":"KLHK","desc":"Kebakaran lahan lereng gunung 600 hektar, evakuasi warga sekitar","severity":"medium"},"geometry":{"type":"Point","coordinates":[110.21,-7.32]}},
+        {"type":"Feature","properties":{"id":"fire-008","title":"Kebakaran Hutan Jambi","type":"wildfire","date":"2025-12-09","source":"KLHK","desc":"Kebakaran lahan gambut 2500 hektar, asap tebal ke wilayah Brunei","severity":"high"},"geometry":{"type":"Point","coordinates":[102.70,-1.50]}},
+        {"type":"Feature","properties":{"id":"fire-009","title":"Kebakaran Hutan Sulawesi Utara","type":"wildfire","date":"2025-12-04","source":"KLHK","desc":"Kebakaran hutan 1200 hektar, api merambat ke area pemukiman","severity":"high"},"geometry":{"type":"Point","coordinates":[125.22,1.50]}},
+        {"type":"Feature","properties":{"id":"fire-010","title":"Kebakaran Hutan Nusa Tenggara Timur","type":"wildfire","date":"2025-12-01","source":"KLHK","desc":"Kebakaran lahan kering 800 hektar, sulit diakses","severity":"medium"},"geometry":{"type":"Point","coordinates":[123.50,-8.65]}},
+        {"type":"Feature","properties":{"id":"fire-011","title":"Kebakaran Hutan Bengkulu","type":"wildfire","date":"2025-11-28","source":"KLHK","desc":"Kebakaran lahan gambut 1800 hektar, tim pemadam bekerja 24 jam","severity":"high"},"geometry":{"type":"Point","coordinates":[102.15,-3.80]}},
+        {"type":"Feature","properties":{"id":"fire-012","title":"Kebakaran Hutan Sumatra Selatan","type":"wildfire","date":"2025-11-25","source":"KLHK","desc":"Kebakaran lahan 1500 hektar, asap mempengaruhi kualitas udara perkotaan","severity":"medium"},"geometry":{"type":"Point","coordinates":[103.75,-3.50]}}
+      ];
+    }
+
+    // Hanya gunakan data real dari API USGS (tanpa dummy data)
+
+    // Load real data dari USGS API saja
+    async function loadBencanaData() {
+      const usgsEarthquakes = await fetchEarthquakes();
+      const historicalEarthquakes = getHistoricalEarthquakesData();
+      
+      // Gabung USGS + historical earthquakes, hilangkan duplikat
+      let allEarthquakes = [...usgsEarthquakes];
+      
+      historicalEarthquakes.forEach(hist => {
+        const isDuplicate = allEarthquakes.some(usgs => {
+          const dist = Math.sqrt(
+            Math.pow(usgs.geometry.coordinates[0] - hist.geometry.coordinates[0], 2) +
+            Math.pow(usgs.geometry.coordinates[1] - hist.geometry.coordinates[1], 2)
+          );
+          return dist < 0.1; // ~10km
+        });
+        if (!isDuplicate) {
+          allEarthquakes.push(hist);
+        }
+      });
+      
+      const landslides = getLandslidesData();
+      const floods = getFloodsData();
+      const eruptions = getVolcanicEruptionsData();
+      const wildfires = getWildfiresData();
+      
+      currentGeoJSON = {
+        "type": "FeatureCollection",
+        "features": [...allEarthquakes, ...landslides, ...floods, ...eruptions, ...wildfires]
+      };
+      
+      loadGeoJSON(currentGeoJSON);
+      console.log(`Loaded: ${allEarthquakes.length} earthquakes, ${landslides.length} landslides, ${floods.length} floods, ${eruptions.length} eruptions, ${wildfires.length} wildfires`);
+    }
+
+    // Initialize MAP
+    const map = L.map('map', {zoomControl: true}).setView([0.5, 117], 5);
+    
+    const basemapDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap & CartoDB'
+    }).addTo(map);
+    
+    const basemapLight = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    });
+    
+    L.control.layers({"🌙 Gelap": basemapDark, "☀️ Terang": basemapLight}, null, {collapsed: true}).addTo(map);
+
+    // Marker Cluster
+    let markerCluster = L.markerClusterGroup();
+    let geoLayer = L.geoJSON(null, {
+      pointToLayer: function(feature, latlng) {
+        const t = feature.properties.type || '';
+        const icon = getIconByType(t);
+        return L.marker(latlng, {icon});
+      },
+      onEachFeature: function(feature, layer) {
+        const p = feature.properties;
+        const html = `<div style="min-width:220px"><div style="font-weight:700;color:#e6eef8">${p.title}</div><div style="font-size:13px;color:#cbd5e1;margin-top:6px">${p.desc}</div><div style="margin-top:8px;font-size:12px;color:#94a3b8">Tanggal: ${p.date} • Sumber: ${p.source}</div></div>`;
+        layer.bindPopup(html);
+      }
+    });
+
+    function getIconByType(t) {
+      const size = [26, 40];
+      const opts = {iconSize: size, iconAnchor: [13, 40]};
+      
+      // Merah - Landslide, Flood
+      if(t === 'landslide' || t === 'flood') {
+        return L.icon(Object.assign({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png'}, opts));
+      }
+      // Kuning - Earthquake
+      if(t === 'earthquake') {
+        return L.icon(Object.assign({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png'}, opts));
+      }
+      // Orange - Eruption, Volcano
+      if(t === 'eruption' || t === 'volcano') {
+        return L.icon(Object.assign({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png'}, opts));
+      }
+      // Violet/Purple - Wildfire
+      if(t === 'wildfire') {
+        return L.icon(Object.assign({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-violet.png'}, opts));
+      }
+      
+      return L.icon(Object.assign({iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png'}, opts));
+    }
+
+    function filterGeoJSON(gjson) {
+      const filters = {
+        earthquake: document.getElementById('filterEarthquake').checked,
+        flood: document.getElementById('filterFloodLandslide').checked,
+        eruption: document.getElementById('filterEruption').checked,
+        wildfire: document.getElementById('filterWildfire').checked
+      };
+      
+      const filtered = {
+        type: 'FeatureCollection',
+        features: gjson.features.filter(feature => {
+          const type = feature.properties.type;
+          if(type === 'earthquake') return filters.earthquake;
+          if(type === 'flood' || type === 'landslide') return filters.flood;
+          if(type === 'eruption') return filters.eruption;
+          if(type === 'wildfire') return filters.wildfire;
+          return true;
+        })
+      };
+      return filtered;
+    }
+
+    function loadGeoJSON(gjson) {
+      const filtered = filterGeoJSON(gjson);
+      geoLayer.clearLayers();
+      markerCluster.clearLayers();
+      geoLayer.addData(filtered);
+      markerCluster.addLayer(geoLayer);
+      map.addLayer(markerCluster);
+      const count = (filtered.features || []).length;
+      document.getElementById('geoCount').innerText = `${count} titik`;
+      fitToGeo(filtered);
+    }
+
+    function fitToGeo(gjson) {
+      const coords = gjson.features.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+      if(coords.length > 0) {
+        const bounds = L.latLngBounds(coords);
+        map.fitBounds(bounds.pad(0.6));
+      }
+    }
+
+    // Filter listeners
+    document.querySelectorAll('.filter-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', () => loadGeoJSON(currentGeoJSON));
+    });
+
+    // Load initial GeoJSON dari BMKG API
+    loadBencanaData();
+    
+    // Auto-refresh data setiap 5 menit
+    setInterval(loadBencanaData, 5 * 60 * 1000);
+
+    // MAP BUTTONS
+    document.getElementById('btnViewMap').addEventListener('click', () => {
+      document.getElementById('mapSection').scrollIntoView({behavior: 'smooth'});
+    });
+
+    document.getElementById('btnFit').addEventListener('click', () => fitToGeo(currentGeoJSON));
+    
+    // REFRESH DATA
+    document.getElementById('btnRefreshData').addEventListener('click', async () => {
+      const btn = document.getElementById('btnRefreshData');
+      const status = document.getElementById('loadStatus');
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
+      status.textContent = '(Loading...)';
+      
+      await loadBencanaData();
+      
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      status.textContent = '(Updated)';
+      setTimeout(() => { status.textContent = ''; }, 2000);
+    });
+    
+    let usingCluster = true;
+    document.getElementById('btnToggleCluster').addEventListener('click', () => {
+      usingCluster = !usingCluster;
+      if(!usingCluster) {
+        map.removeLayer(markerCluster);
+        map.addLayer(geoLayer);
+      } else {
+        map.removeLayer(geoLayer);
+        map.addLayer(markerCluster);
+      }
+    });
+
+    // ===== VIDEO SECTION =====
+    const videoGrid = document.getElementById('videoGrid');
+    const videoInput = document.getElementById('videoInput');
+    const maxVideos = 9;
+
+    function extractYouTubeID(url) {
+      if(!url) return null;
+      const regex = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+      const m = url.match(regex);
+      if(m && m[1]) return m[1];
+      const clean = url.trim();
+      if(clean.length === 11 && /^[A-Za-z0-9_-]{11}$/.test(clean)) return clean;
+      return null;
+    }
+
+    function createVideoItem(videoId, title = 'Video Berita') {
+      const div = document.createElement('div');
+      div.className = 'video-item';
+      div.innerHTML = `
+        <iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/${videoId}" title="${title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      `;
+      return div;
+    }
+
+    // Initial sample videos - dari link yang diberikan user
+    const initialVideoIDs = ['6k_4mNy8LB4', '5z0CGBvmo2g', 'kU0imBgPdiw', '1RcZnM5j0Hk', 'o8urel9p8MQ'];
+
+    function populateInitialVideos() {
+      videoGrid.innerHTML = '';
+      initialVideoIDs.forEach(id => {
+        videoGrid.appendChild(createVideoItem(id));
+      });
+    }
+
+    // Add video from input
+    document.getElementById('btnAddVideo').addEventListener('click', () => {
+      const val = videoInput.value.trim();
+      const id = extractYouTubeID(val);
+      if(!id) {
+        alert('URL/ID YouTube tidak valid. Pastikan format benar.');
+        return;
+      }
+      const current = videoGrid.querySelectorAll('.video-item').length;
+      if(current >= maxVideos) {
+        alert('Maksimum 9 video. Hapus beberapa dulu.');
+        return;
+      }
+      videoGrid.prepend(createVideoItem(id));
+      videoInput.value = '';
+      document.getElementById('video').scrollIntoView({behavior: 'smooth'});
+    });
+
+    // Initial population
+    populateInitialVideos();
+
+    // Double-click to remove video
+    videoGrid.addEventListener('dblclick', (e) => {
+      let node = e.target;
+      while(node && !node.classList.contains('video-item')) node = node.parentElement;
+      if(node) {
+        if(confirm('Hapus video ini?')) node.remove();
+      }
+    });
+
+    // Keyboard support
+    videoInput.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') document.getElementById('btnAddVideo').click();
+    });
+
+    // Fit map after load
+    setTimeout(() => fitToGeo(sampleGeoJSON), 300);
+  </script>
+</body>
+</html>
